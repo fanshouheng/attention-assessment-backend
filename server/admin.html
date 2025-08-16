@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>License管理后台 - 儿童专注力测评系统</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .fade-in {
+            animation: fadeIn 0.3s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <!-- 导航栏 -->
+    <nav class="bg-blue-600 text-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex justify-between items-center py-4">
+                <h1 class="text-xl font-bold">License管理后台</h1>
+                <div id="userInfo" class="hidden">
+                    <span id="username" class="mr-4"></span>
+                    <button onclick="logout()" class="bg-blue-500 hover:bg-blue-400 px-3 py-1 rounded text-sm">
+                        退出登录
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 登录表单 -->
+    <div id="loginForm" class="flex items-center justify-center min-h-screen bg-gray-100">
+        <div class="max-w-md w-full bg-white rounded-lg shadow-md p-6 mx-4">
+            <h2 class="text-2xl font-bold text-center text-gray-800 mb-6">管理员登录</h2>
+            
+            <form onsubmit="login(event)" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">用户名</label>
+                    <input type="text" id="loginUsername" required 
+                           class="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">密码</label>
+                    <input type="password" id="loginPassword" required
+                           class="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                
+                <div id="loginError" class="hidden text-red-600 text-sm bg-red-50 p-3 rounded"></div>
+                
+                <button type="submit" id="loginBtn"
+                        class="w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    登录
+                </button>
+            </form>
+            
+            <div class="mt-6 text-center text-sm text-gray-600">
+                <p>默认管理员账号：admin / admin123</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主要内容 -->
+    <div id="mainContent" class="hidden max-w-7xl mx-auto px-4 py-8">
+        <!-- 统计卡片 -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h3 class="text-sm font-medium text-gray-500">总License数</h3>
+                <p id="totalLicenses" class="text-2xl font-bold text-gray-900">-</p>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h3 class="text-sm font-medium text-gray-500">活跃License</h3>
+                <p id="activeLicenses" class="text-2xl font-bold text-green-600">-</p>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h3 class="text-sm font-medium text-gray-500">今日使用量</h3>
+                <p id="todayUsage" class="text-2xl font-bold text-blue-600">-</p>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h3 class="text-sm font-medium text-gray-500">本月使用量</h3>
+                <p id="monthUsage" class="text-2xl font-bold text-purple-600">-</p>
+            </div>
+        </div>
+
+        <!-- 标签页 -->
+        <div class="bg-white rounded-lg shadow">
+            <div class="border-b border-gray-200">
+                <nav class="flex space-x-8 px-6">
+                    <button onclick="showTab('create')" id="createTab" 
+                            class="py-4 px-1 border-b-2 border-blue-500 text-blue-600 font-medium">
+                        创建License
+                    </button>
+                    <button onclick="showTab('list')" id="listTab"
+                            class="py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700">
+                        License列表
+                    </button>
+                    <button onclick="showTab('stats')" id="statsTab"
+                            class="py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700">
+                        使用统计
+                    </button>
+                </nav>
+            </div>
+
+            <!-- 创建License -->
+            <div id="createContent" class="p-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">创建新License</h3>
+                <form onsubmit="createLicense(event)" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">用户姓名</label>
+                        <input type="text" id="userName" required 
+                               class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">邮箱地址</label>
+                        <input type="email" id="userEmail" required
+                               class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">每日限制</label>
+                        <input type="number" id="dailyLimit" value="10" min="1" max="100"
+                               class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">每月限制</label>
+                        <input type="number" id="monthlyLimit" value="300" min="10" max="3000"
+                               class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">过期日期</label>
+                        <input type="date" id="expiryDate"
+                               class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    
+                    <div class="flex items-end">
+                        <button type="submit" id="createBtn"
+                                class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            创建License
+                        </button>
+                    </div>
+                </form>
+                
+                <div id="createResult" class="hidden mt-6 p-4 bg-green-50 rounded-lg">
+                    <h4 class="font-bold text-green-800">License创建成功！</h4>
+                    <p class="text-green-700 mt-2">License密钥：</p>
+                    <p id="newLicenseKey" class="font-mono text-lg mt-1 p-2 bg-white rounded border"></p>
+                    <button onclick="copyLicense()" class="mt-3 bg-green-600 text-white px-4 py-2 rounded text-sm hover:bg-green-700">
+                        复制密钥
+                    </button>
+                </div>
+            </div>
+
+            <!-- License列表 -->
+            <div id="listContent" class="hidden p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-medium text-gray-900">License列表</h3>
+                    <button onclick="loadLicenses()" class="bg-blue-600 text-white px-4 py-2 rounded text-sm hover:bg-blue-700">
+                        刷新列表
+                    </button>
+                </div>
+                
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">License密钥</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">用户信息</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">限制</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">状态</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">创建时间</th>
+                            </tr>
+                        </thead>
+                        <tbody id="licenseTableBody" class="bg-white divide-y divide-gray-200">
+                            <!-- 动态内容 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 使用统计 -->
+            <div id="statsContent" class="hidden p-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">使用统计</h3>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <h4 class="font-medium text-gray-900 mb-2">最近7天使用量</h4>
+                        <div id="weeklyStats">加载中...</div>
+                    </div>
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <h4 class="font-medium text-gray-900 mb-2">热门License</h4>
+                        <div id="popularLicenses">加载中...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 全局变量
+        let currentUser = null;
+        let currentTab = 'create';
+
+        // 页面加载完成后检查登录状态
+        document.addEventListener('DOMContentLoaded', function() {
+            checkLoginStatus();
+            setDefaultExpiryDate();
+        });
+
+        // 检查登录状态
+        function checkLoginStatus() {
+            const savedUser = localStorage.getItem('adminUser');
+            if (savedUser) {
+                currentUser = JSON.parse(savedUser);
+                showMainContent();
+            }
+        }
+
+        // 设置默认过期日期（一年后）
+        function setDefaultExpiryDate() {
+            const oneYearLater = new Date();
+            oneYearLater.setFullYear(oneYearLater.getFullYear() + 1);
+            document.getElementById('expiryDate').value = oneYearLater.toISOString().split('T')[0];
+        }
+
+        // 登录
+        async function login(event) {
+            event.preventDefault();
+            
+            const username = document.getElementById('loginUsername').value;
+            const password = document.getElementById('loginPassword').value;
+            const loginBtn = document.getElementById('loginBtn');
+            const loginError = document.getElementById('loginError');
+            
+            loginBtn.textContent = '登录中...';
+            loginBtn.disabled = true;
+            loginError.classList.add('hidden');
+
+            try {
+                const response = await fetch('/api/admin/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    currentUser = result.admin;
+                    localStorage.setItem('adminUser', JSON.stringify(currentUser));
+                    showMainContent();
+                } else {
+                    loginError.textContent = result.message || '登录失败';
+                    loginError.classList.remove('hidden');
+                }
+            } catch (error) {
+                loginError.textContent = '网络错误，请重试';
+                loginError.classList.remove('hidden');
+            } finally {
+                loginBtn.textContent = '登录';
+                loginBtn.disabled = false;
+            }
+        }
+
+        // 登出
+        function logout() {
+            currentUser = null;
+            localStorage.removeItem('adminUser');
+            document.getElementById('loginForm').classList.remove('hidden');
+            document.getElementById('mainContent').classList.add('hidden');
+        }
+
+        // 显示主要内容
+        function showMainContent() {
+            document.getElementById('loginForm').classList.add('hidden');
+            document.getElementById('mainContent').classList.remove('hidden');
+            document.getElementById('username').textContent = currentUser.username;
+            document.getElementById('userInfo').classList.remove('hidden');
+            
+            loadStatistics();
+            if (currentTab === 'list') {
+                loadLicenses();
+            }
+        }
+
+        // 切换标签页
+        function showTab(tabName) {
+            // 隐藏所有内容
+            document.getElementById('createContent').classList.add('hidden');
+            document.getElementById('listContent').classList.add('hidden');
+            document.getElementById('statsContent').classList.add('hidden');
+            
+            // 重置所有标签样式
+            document.getElementById('createTab').className = 'py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700';
+            document.getElementById('listTab').className = 'py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700';
+            document.getElementById('statsTab').className = 'py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700';
+            
+            // 显示选中的内容和标签
+            document.getElementById(tabName + 'Content').classList.remove('hidden');
+            document.getElementById(tabName + 'Tab').className = 'py-4 px-1 border-b-2 border-blue-500 text-blue-600 font-medium';
+            
+            currentTab = tabName;
+            
+            // 加载对应数据
+            if (tabName === 'list') {
+                loadLicenses();
+            } else if (tabName === 'stats') {
+                loadUsageStats();
+            }
+        }
+
+        // 创建License
+        async function createLicense(event) {
+            event.preventDefault();
+            
+            const data = {
+                userName: document.getElementById('userName').value,
+                userEmail: document.getElementById('userEmail').value,
+                dailyLimit: parseInt(document.getElementById('dailyLimit').value),
+                monthlyLimit: parseInt(document.getElementById('monthlyLimit').value),
+                expiryDate: document.getElementById('expiryDate').value
+            };
+
+            const createBtn = document.getElementById('createBtn');
+            createBtn.textContent = '创建中...';
+            createBtn.disabled = true;
+
+            try {
+                const response = await fetch('/api/admin/create-license', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    document.getElementById('newLicenseKey').textContent = result.licenseKey;
+                    document.getElementById('createResult').classList.remove('hidden');
+                    event.target.reset();
+                    setDefaultExpiryDate();
+                    loadStatistics(); // 刷新统计
+                } else {
+                    alert('创建失败: ' + result.message);
+                }
+            } catch (error) {
+                alert('网络错误: ' + error.message);
+            } finally {
+                createBtn.textContent = '创建License';
+                createBtn.disabled = false;
+            }
+        }
+
+        // 复制License密钥
+        function copyLicense() {
+            const licenseKey = document.getElementById('newLicenseKey').textContent;
+            navigator.clipboard.writeText(licenseKey).then(() => {
+                alert('License密钥已复制到剪贴板');
+            });
+        }
+
+        // 加载统计数据
+        async function loadStatistics() {
+            try {
+                // 这里应该调用实际的统计API
+                // 暂时使用模拟数据
+                document.getElementById('totalLicenses').textContent = '25';
+                document.getElementById('activeLicenses').textContent = '18';
+                document.getElementById('todayUsage').textContent = '156';
+                document.getElementById('monthUsage').textContent = '3,247';
+            } catch (error) {
+                console.error('加载统计数据失败:', error);
+            }
+        }
+
+        // 加载License列表
+        async function loadLicenses() {
+            try {
+                const response = await fetch('/api/admin/licenses');
+                const result = await response.json();
+
+                const tbody = document.getElementById('licenseTableBody');
+                tbody.innerHTML = '';
+
+                result.licenses.forEach(license => {
+                    const row = document.createElement('tr');
+                    const isExpired = license.expiry_date && new Date(license.expiry_date) < new Date();
+                    const statusClass = isExpired ? 'text-red-600' : (license.is_active ? 'text-green-600' : 'text-gray-600');
+                    const statusText = isExpired ? '已过期' : (license.is_active ? '正常' : '禁用');
+
+                    row.innerHTML = `
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm font-mono text-gray-900">${license.license_key}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-gray-900">${license.user_name}</div>
+                            <div class="text-sm text-gray-500">${license.user_email}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-gray-900">日: ${license.daily_limit}</div>
+                            <div class="text-sm text-gray-500">月: ${license.monthly_limit}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="text-sm font-medium ${statusClass}">${statusText}</span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            ${new Date(license.created_at).toLocaleDateString()}
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            } catch (error) {
+                console.error('加载License列表失败:', error);
+            }
+        }
+
+        // 加载使用统计
+        async function loadUsageStats() {
+            try {
+                // 这里应该调用实际的统计API
+                document.getElementById('weeklyStats').innerHTML = `
+                    <div class="space-y-2">
+                        <div class="flex justify-between"><span>今天</span><span class="font-medium">156次</span></div>
+                        <div class="flex justify-between"><span>昨天</span><span class="font-medium">142次</span></div>
+                        <div class="flex justify-between"><span>前天</span><span class="font-medium">168次</span></div>
+                    </div>
+                `;
+                
+                document.getElementById('popularLicenses').innerHTML = `
+                    <div class="space-y-2">
+                        <div class="flex justify-between"><span class="text-sm">DEMO-TRIAL-***</span><span class="font-medium">45次</span></div>
+                        <div class="flex justify-between"><span class="text-sm">ABCD-1234-***</span><span class="font-medium">32次</span></div>
+                        <div class="flex justify-between"><span class="text-sm">EFGH-5678-***</span><span class="font-medium">28次</span></div>
+                    </div>
+                `;
+            } catch (error) {
+                console.error('加载使用统计失败:', error);
+            }
+        }
+    </script>
+</body>
+</html> 
