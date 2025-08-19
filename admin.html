@@ -58,7 +58,7 @@
             </form>
             
             <div class="mt-6 text-center text-sm text-gray-600">
-                <p>默认管理员账号：admin / admin123</p>
+                <p>请使用管理员账号登录</p>
             </div>
         </div>
     </div>
@@ -366,14 +366,28 @@
         // 加载统计数据
         async function loadStatistics() {
             try {
-                // 这里应该调用实际的统计API
-                // 暂时使用模拟数据
-                document.getElementById('totalLicenses').textContent = '25';
-                document.getElementById('activeLicenses').textContent = '18';
-                document.getElementById('todayUsage').textContent = '156';
-                document.getElementById('monthUsage').textContent = '3,247';
+                const response = await fetch('/api/admin/statistics');
+                const result = await response.json();
+                
+                if (result.success) {
+                    document.getElementById('totalLicenses').textContent = result.data.totalLicenses || '0';
+                    document.getElementById('activeLicenses').textContent = result.data.activeLicenses || '0';
+                    document.getElementById('todayUsage').textContent = result.data.todayUsage || '0';
+                    document.getElementById('monthUsage').textContent = result.data.monthUsage || '0';
+                } else {
+                    // 显示默认值
+                    document.getElementById('totalLicenses').textContent = '0';
+                    document.getElementById('activeLicenses').textContent = '0';
+                    document.getElementById('todayUsage').textContent = '0';
+                    document.getElementById('monthUsage').textContent = '0';
+                }
             } catch (error) {
                 console.error('加载统计数据失败:', error);
+                // 显示默认值
+                document.getElementById('totalLicenses').textContent = '0';
+                document.getElementById('activeLicenses').textContent = '0';
+                document.getElementById('todayUsage').textContent = '0';
+                document.getElementById('monthUsage').textContent = '0';
             }
         }
 
@@ -421,24 +435,21 @@
         // 加载使用统计
         async function loadUsageStats() {
             try {
-                // 这里应该调用实际的统计API
-                document.getElementById('weeklyStats').innerHTML = `
-                    <div class="space-y-2">
-                        <div class="flex justify-between"><span>今天</span><span class="font-medium">156次</span></div>
-                        <div class="flex justify-between"><span>昨天</span><span class="font-medium">142次</span></div>
-                        <div class="flex justify-between"><span>前天</span><span class="font-medium">168次</span></div>
-                    </div>
-                `;
+                const response = await fetch('/api/admin/usage-stats');
+                const result = await response.json();
                 
-                document.getElementById('popularLicenses').innerHTML = `
-                    <div class="space-y-2">
-                        <div class="flex justify-between"><span class="text-sm">DEMO-TRIAL-***</span><span class="font-medium">45次</span></div>
-                        <div class="flex justify-between"><span class="text-sm">ABCD-1234-***</span><span class="font-medium">32次</span></div>
-                        <div class="flex justify-between"><span class="text-sm">EFGH-5678-***</span><span class="font-medium">28次</span></div>
-                    </div>
-                `;
+                if (result.success) {
+                    // 显示真实的统计数据
+                    document.getElementById('weeklyStats').innerHTML = result.data.weeklyStats || '<p class="text-gray-500">暂无数据</p>';
+                    document.getElementById('popularLicenses').innerHTML = result.data.popularLicenses || '<p class="text-gray-500">暂无数据</p>';
+                } else {
+                    document.getElementById('weeklyStats').innerHTML = '<p class="text-gray-500">暂无数据</p>';
+                    document.getElementById('popularLicenses').innerHTML = '<p class="text-gray-500">暂无数据</p>';
+                }
             } catch (error) {
                 console.error('加载使用统计失败:', error);
+                document.getElementById('weeklyStats').innerHTML = '<p class="text-red-500">加载失败</p>';
+                document.getElementById('popularLicenses').innerHTML = '<p class="text-red-500">加载失败</p>';
             }
         }
     </script>

@@ -55,7 +55,7 @@ db.serialize(() => {
 
   // 创建默认管理员账号
   const defaultAdmin = process.env.ADMIN_USERNAME || 'admin';
-  const defaultPassword = process.env.ADMIN_PASSWORD || 'admin123';
+  const defaultPassword = process.env.ADMIN_PASSWORD || generateSecurePassword();
   
   bcrypt.hash(defaultPassword, 10, (err, hash) => {
     if (err) {
@@ -69,26 +69,32 @@ db.serialize(() => {
           console.error('创建默认管理员失败:', err);
         } else {
           console.log(`默认管理员账号: ${defaultAdmin}`);
+          if (!process.env.ADMIN_PASSWORD) {
+            console.log(`默认管理员密码: ${defaultPassword}`);
+            console.log(`⚠️  请及时修改默认密码！`);
+          }
         }
       });
   });
 
-  // 创建演示License
-  const demoLicense = 'DEMO-TRIAL-2024-ABCD';
-  const expiryDate = new Date();
-  expiryDate.setDate(expiryDate.getDate() + 7); // 7天有效期
-  
-  db.run(`INSERT OR IGNORE INTO licenses 
-    (license_key, user_name, user_email, daily_limit, monthly_limit, expiry_date) 
-    VALUES (?, ?, ?, ?, ?, ?)`,
-    [demoLicense, '演示用户', 'demo@example.com', 5, 50, expiryDate.toISOString()],
-    (err) => {
-      if (err) {
-        console.error('创建演示License失败:', err);
-      } else {
-        console.log(`演示License: ${demoLicense}`);
-      }
-    });
+  // 生产环境不创建演示License
+  if (process.env.NODE_ENV !== 'production') {
+    const demoLicense = 'DEMO-TRIAL-2024-ABCD';
+    const expiryDate = new Date();
+    expiryDate.setDate(expiryDate.getDate() + 7); // 7天有效期
+    
+    db.run(`INSERT OR IGNORE INTO licenses 
+      (license_key, user_name, user_email, daily_limit, monthly_limit, expiry_date) 
+      VALUES (?, ?, ?, ?, ?, ?)`,
+      [demoLicense, '演示用户', 'demo@example.com', 5, 50, expiryDate.toISOString()],
+      (err) => {
+        if (err) {
+          console.error('创建演示License失败:', err);
+        } else {
+          console.log(`演示License: ${demoLicense}`);
+        }
+      });
+  }
 });
 
 // License验证接口
@@ -326,43 +332,103 @@ app.get('/api/admin/licenses', (req, res) => {
   });
 });
 
+// 管理员统计数据
+app.get('/api/admin/statistics', (req, res) => {
+  // 获取总License数
+  db.get(`SELECT COUNT(*) as total FROM licenses`, (err, totalRow) => {
+    if (err) {
+      console.error('获取总License数失败:', err);
+      return res.status(500).json({ success: false, message: '查询失败' });
+    }
+
+    // 获取活跃License数
+    db.get(`SELECT COUNT(*) as active FROM licenses WHERE is_active = 1 AND (expiry_date IS NULL OR expiry_date > datetime('now'))`, (err, activeRow) => {
+      if (err) {
+        console.error('获取活跃License数失败:', err);
+        return res.status(500).json({ success: false, message: '查询失败' });
+      }
+
+      // 获取今日使用量
+      const today = new Date().toISOString().split('T')[0];
+      db.get(`SELECT COUNT(*) as today FROM usage_logs WHERE date(timestamp) = ? AND action = 'report_generated'`, [today], (err, todayRow) => {
+        if (err) {
+          console.error('获取今日使用量失败:', err);
+          return res.status(500).json({ success: false, message: '查询失败' });
+        }
+
+        // 获取本月使用量
+        const thisMonth = new Date().toISOString().substring(0, 7);
+        db.get(`SELECT COUNT(*) as month FROM usage_logs WHERE strftime('%Y-%m', timestamp) = ? AND action = 'report_generated'`, [thisMonth], (err, monthRow) => {
+          if (err) {
+            console.error('获取本月使用量失败:', err);
+            return res.status(500).json({ success: false, message: '查询失败' });
+          }
+
+          res.json({
+            success: true,
+            data: {
+              totalLicenses: totalRow.total,
+              activeLicenses: activeRow.active,
+              todayUsage: todayRow.today,
+              monthUsage: monthRow.month
+            }
+          });
+        });
+      });
+    });
+  });
+});
+
 // 使用统计报告
 app.get('/api/admin/usage-stats', (req, res) => {
-  const { licenseKey, startDate, endDate } = req.query;
-  
-  let query = `SELECT 
+  // 获取最近7天的使用统计
+  db.all(`SELECT 
     DATE(timestamp) as date,
-    COUNT(*) as count,
-    action
+    COUNT(*) as count
     FROM usage_logs 
-    WHERE 1=1`;
-  
-  const params = [];
-  
-  if (licenseKey) {
-    query += ` AND license_key = ?`;
-    params.push(licenseKey);
-  }
-  
-  if (startDate) {
-    query += ` AND DATE(timestamp) >= ?`;
-    params.push(startDate);
-  }
-  
-  if (endDate) {
-    query += ` AND DATE(timestamp) <= ?`;
-    params.push(endDate);
-  }
-  
-  query += ` GROUP BY DATE(timestamp), action ORDER BY date DESC`;
-  
-  db.all(query, params, (err, rows) => {
+    WHERE action = 'report_generated' 
+    AND date(timestamp) >= date('now', '-7 days')
+    GROUP BY DATE(timestamp) 
+    ORDER BY date DESC`, (err, weeklyRows) => {
     if (err) {
-      console.error('获取使用统计失败:', err);
-      return res.status(500).json({ message: '查询失败' });
+      console.error('获取周统计失败:', err);
+      return res.status(500).json({ success: false, message: '查询失败' });
     }
-    
-    res.json({ stats: rows });
+
+    // 获取热门License
+    db.all(`SELECT 
+      l.license_key,
+      l.user_name,
+      COUNT(ul.id) as usage_count
+      FROM licenses l
+      LEFT JOIN usage_logs ul ON l.license_key = ul.license_key 
+      WHERE ul.action = 'report_generated'
+      AND ul.timestamp >= datetime('now', '-30 days')
+      GROUP BY l.license_key, l.user_name
+      ORDER BY usage_count DESC
+      LIMIT 5`, (err, popularRows) => {
+      if (err) {
+        console.error('获取热门License失败:', err);
+        return res.status(500).json({ success: false, message: '查询失败' });
+      }
+
+      // 格式化数据
+      const weeklyStats = weeklyRows.length > 0 ? 
+        weeklyRows.map(row => `<div class="flex justify-between"><span>${row.date}</span><span class="font-medium">${row.count}次</span></div>`).join('') :
+        '<p class="text-gray-500">暂无数据</p>';
+
+      const popularLicenses = popularRows.length > 0 ?
+        popularRows.map(row => `<div class="flex justify-between"><span class="text-sm">${row.license_key.substring(0, 8)}***</span><span class="font-medium">${row.usage_count}次</span></div>`).join('') :
+        '<p class="text-gray-500">暂无数据</p>';
+
+      res.json({
+        success: true,
+        data: {
+          weeklyStats: `<div class="space-y-2">${weeklyStats}</div>`,
+          popularLicenses: `<div class="space-y-2">${popularLicenses}</div>`
+        }
+      });
+    });
   });
 });
 
@@ -372,6 +438,16 @@ function generateLicenseKey() {
   let result = '';
   for (let i = 0; i < 16; i++) {
     if (i > 0 && i % 4 === 0) result += '-';
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+}
+
+// 生成安全密码
+function generateSecurePassword() {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
+  let result = '';
+  for (let i = 0; i < 12; i++) {
     result += chars.charAt(Math.floor(Math.random() * chars.length));
   }
   return result;
