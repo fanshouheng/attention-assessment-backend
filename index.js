@@ -13,6 +13,9 @@ app.use(cors({
 }));
 app.use(express.json());
 
+// 静态文件服务 - 提供管理页面
+app.use(express.static('.'));
+
 // 数据库初始化
 const db = new sqlite3.Database(process.env.DB_PATH || 'licenses.db');
 
@@ -373,6 +376,16 @@ function generateLicenseKey() {
   }
   return result;
 }
+
+// 管理页面路由
+app.get('/admin', (req, res) => {
+  res.sendFile(__dirname + '/admin.html');
+});
+
+// 根路径重定向到管理页面
+app.get('/', (req, res) => {
+  res.redirect('/admin');
+});
 
 // 健康检查接口
 app.get('/health', (req, res) => {
