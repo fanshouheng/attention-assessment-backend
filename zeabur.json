@@ -1,0 +1,12 @@
+{
+  "name": "attention-report-license-server",
+  "build": {
+    "commands": [
+      "npm install"
+    ]
+  },
+  "start": "npm start",
+  "environment": {
+    "NODE_ENV": "production"
+  }
+}

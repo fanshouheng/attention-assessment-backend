@@ -3,9 +3,22 @@
 Express API 服务，提供 License 验证和使用统计。
 
 ## 部署
-- 平台：Railway
-- 数据库：SQLite/PostgreSQL
-- API 端点：https://your-api.railway.app
+
+### Zeabur 部署
+1. 推送代码到 GitHub 仓库
+2. 在 Zeabur 控制台创建新项目
+3. 连接 GitHub 仓库
+4. 配置环境变量：
+   - `JWT_SECRET`: JWT密钥
+   - `ADMIN_USERNAME`: 管理员用户名
+   - `ADMIN_PASSWORD`: 管理员密码
+   - `CORS_ORIGIN`: 前端域名（可选）
+5. 部署完成后访问：https://your-project.zeabur.app
+
+### 本地部署
+- 平台：Railway/Zeabur
+- 数据库：SQLite
+- API 端点：https://your-project.zeabur.app
 
 ## 开发
 ```bash
