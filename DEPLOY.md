@@ -64,12 +64,20 @@ Zeabur 会自动为你的应用提供持久化存储，SQLite 数据库文件会
 部署成功后，你的 API 将在以下端点可用：
 
 - `GET /health` - 健康检查
-- `POST /api/validate-license` - License验证
-- `POST /api/usage-stats` - 使用统计
+- `GET|POST /api/validate-license` - License验证（支持GET和POST）
+- `GET|POST /api/usage-stats` - 使用统计（支持GET和POST）
+- `GET|POST /api/daily-usage` - 获取今日使用量（支持GET和POST）
 - `POST /api/admin/login` - 管理员登录
 - `POST /api/admin/create-license` - 创建License
 - `GET /api/admin/licenses` - 获取License列表
 - `GET /api/admin/statistics` - 统计数据
+
+### GET 请求示例：
+```
+GET /api/validate-license?licenseKey=YOUR-LICENSE-KEY
+GET /api/usage-stats?licenseKey=YOUR-LICENSE-KEY&action=report_generated
+GET /api/daily-usage?licenseKey=YOUR-LICENSE-KEY
+```
 
 ## 安全建议
 

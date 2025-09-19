@@ -97,9 +97,10 @@ db.serialize(() => {
   }
 });
 
-// License验证接口
-app.post('/api/validate-license', (req, res) => {
-  const { licenseKey } = req.body;
+// License验证接口 - 支持GET和POST请求
+const validateLicenseHandler = (req, res) => {
+  // 支持GET请求（从query参数获取）和POST请求（从body获取）
+  const licenseKey = req.method === 'GET' ? req.query.licenseKey : req.body.licenseKey;
   const clientIP = req.ip || req.connection.remoteAddress;
   const userAgent = req.get('User-Agent') || '';
 
@@ -158,11 +159,16 @@ app.post('/api/validate-license', (req, res) => {
       }
     });
   });
-});
+};
 
-// 使用统计接口
-app.post('/api/usage-stats', (req, res) => {
-  const { licenseKey, action } = req.body;
+// 同时支持GET和POST请求
+app.get('/api/validate-license', validateLicenseHandler);
+app.post('/api/validate-license', validateLicenseHandler);
+
+// 使用统计接口 - 支持GET和POST请求
+const usageStatsHandler = (req, res) => {
+  const licenseKey = req.method === 'GET' ? req.query.licenseKey : req.body.licenseKey;
+  const action = req.method === 'GET' ? req.query.action : req.body.action;
   const clientIP = req.ip || req.connection.remoteAddress;
   const userAgent = req.get('User-Agent') || '';
   
@@ -197,11 +203,14 @@ app.post('/api/usage-stats', (req, res) => {
       res.json({ success: true });
     });
   });
-});
+};
 
-// 获取今日使用量
-app.post('/api/daily-usage', (req, res) => {
-  const { licenseKey } = req.body;
+app.get('/api/usage-stats', usageStatsHandler);
+app.post('/api/usage-stats', usageStatsHandler);
+
+// 获取今日使用量 - 支持GET和POST请求
+const dailyUsageHandler = (req, res) => {
+  const licenseKey = req.method === 'GET' ? req.query.licenseKey : req.body.licenseKey;
   
   if (!licenseKey) {
     return res.status(400).json({ message: '参数不完整' });
@@ -220,7 +229,10 @@ app.post('/api/daily-usage', (req, res) => {
     
     res.json({ dailyUsage: row.count || 0 });
   });
-});
+};
+
+app.get('/api/daily-usage', dailyUsageHandler);
+app.post('/api/daily-usage', dailyUsageHandler);
 
 // 管理员登录
 app.post('/api/admin/login', async (req, res) => {
